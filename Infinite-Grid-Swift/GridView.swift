@@ -50,15 +50,20 @@ class GridView: UIView {
     }
 
     private func allocateInitialTiles() {
-        allocateTile(at: (-1, -1))
-        allocateTile(at: (0, -1))
-        allocateTile(at: (1, -1))
-        allocateTile(at: (-1, 0))
-        allocateTile(at: (0, 0))
-        allocateTile(at: (1, 0))
-        allocateTile(at: (-1, 1))
-        allocateTile(at: (0, 1))
-        allocateTile(at: (1, 1))
+        populateGridInBounds(lowerX: -2, upperX: 2, lowerY: -2, upperY: 2)
+    }
+
+    private func populateGridInBounds(lowerX: Int, upperX: Int, lowerY: Int, upperY: Int) {
+        guard upperX > lowerX, upperY > lowerY else { return }
+        var coordX = lowerX
+        while coordX <= upperX {
+            var coordY = lowerY
+            while coordY <= upperY {
+                allocateTile(at: (coordX, coordY))
+                coordY += 1
+            }
+            coordX += 1
+        }
     }
 
     private func allocateTile(at tileCoordinates: (Int, Int)) {
