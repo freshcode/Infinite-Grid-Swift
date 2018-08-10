@@ -21,10 +21,15 @@ class GridView: UIView {
     // edges of the scrollview and bounce/stop
     private let arbitraryLargeOffset: CGFloat = 10000000.0
 
+    private(set) var referenceCoordinates: (Int, Int) = (0, 0)
+    private(set) var tileSize: CGFloat = 100.0
+    private(set) var centreCoordinates: (Int, Int) = (0, 0)
+
     override func awakeFromNib() {
         super.awakeFromNib()
         defineScrollableArea()
         centreOurReferenceView()
+        allocateInitialTiles()
     }
 
     private func defineScrollableArea() {
@@ -42,5 +47,31 @@ class GridView: UIView {
         let xOffset = arbitraryLargeOffset - ((scrollview.frame.size.width - self.frame.size.width) * 0.5)
         let yOffset = arbitraryLargeOffset - ((scrollview.frame.size.height - self.frame.size.height) * 0.5)
         scrollview.setContentOffset(CGPoint(x: xOffset, y: yOffset), animated: false)
+    }
+
+    private func allocateInitialTiles() {
+        allocateTile(at: (-1, -1))
+        allocateTile(at: (0, -1))
+        allocateTile(at: (1, -1))
+        allocateTile(at: (-1, 0))
+        allocateTile(at: (0, 0))
+        allocateTile(at: (1, 0))
+        allocateTile(at: (-1, 1))
+        allocateTile(at: (0, 1))
+        allocateTile(at: (1, 1))
+    }
+
+    private func allocateTile(at tileCoordinates: (Int, Int)) {
+        let tile = GridTile(frame: frameForTile(at: tileCoordinates), coordinates: tileCoordinates)
+        self.addSubview(tile)
+        print("We allocated a new tile at \(tileCoordinates)")
+    }
+
+    private func frameForTile(at coordinates: (Int, Int)) -> CGRect {
+        let xIntOffset = coordinates.0 - referenceCoordinates.0
+        let yIntOffset = coordinates.1 - referenceCoordinates.1
+        let xOffset = self.bounds.size.width * 0.5 + (tileSize * (CGFloat(xIntOffset) - 0.5))
+        let yOffset = self.bounds.size.height * 0.5 + (tileSize * (CGFloat(yIntOffset) - 0.5))
+        return CGRect(x: xOffset, y: yOffset, width: tileSize, height: tileSize)
     }
 }
