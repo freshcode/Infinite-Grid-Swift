@@ -79,6 +79,21 @@ class GridView: UIView {
         }
     }
 
+    private func clearGridOutsideBounds(lowerX: Int, upperX: Int, lowerY: Int, upperY: Int) {
+        let tilesToProcess = allocatedTiles
+        for tile in tilesToProcess {
+            let tileX = tile.coordinates.0
+            let tileY = tile.coordinates.1
+            if tileX < lowerX || tileX > upperX || tileY < lowerY || tileY > upperY {
+                print("Deallocating grid tile: \(tile.coordinates)")
+                tile.removeFromSuperview()
+                if let index = allocatedTiles.index(of: tile) {
+                    allocatedTiles.remove(at: index)
+                }
+            }
+        }
+    }
+
     private func tileExists(at tileCoordinates: (Int, Int)) -> Bool {
         for tile in allocatedTiles where tile.coordinates == tileCoordinates {
             return true
@@ -120,13 +135,19 @@ class GridView: UIView {
         guard centre != centreCoordinates else { return }
         self.centreCoordinates = centre
         print("centre is now at coordinates: \(centre)")
-        let centreX = centre.0
-        let centreY = centre.1
+        guard tileSize > 0 else { return }
         let xTilesRequired = Int(UIScreen.main.bounds.size.width / tileSize)
         let yTilesRequired = Int(UIScreen.main.bounds.size.height / tileSize)
-        populateGridInBounds(lowerX: centreX - xTilesRequired, upperX: centreX + xTilesRequired,
-                             lowerY: centreY - yTilesRequired, upperY: centreY + yTilesRequired)
+        let lowerBoundX = centre.0 - xTilesRequired
+        let upperBoundX = centre.0 + xTilesRequired
+        let lowerBoundY = centre.1 - yTilesRequired
+        let upperBoundY = centre.1 + yTilesRequired
+        populateGridInBounds(lowerX: lowerBoundX, upperX: upperBoundX,
+                             lowerY: lowerBoundY, upperY: upperBoundY)
+        clearGridOutsideBounds(lowerX: lowerBoundX, upperX: upperBoundX,
+                               lowerY: lowerBoundY, upperY: upperBoundY)
     }
+
 
     private func computedCentreCoordinates(_ scrollview: UIScrollView) -> (Int, Int) {
         guard tileSize > 0 else { return centreCoordinates }
