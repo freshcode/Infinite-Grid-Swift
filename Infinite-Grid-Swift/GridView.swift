@@ -23,9 +23,11 @@ class GridView: UIView {
 
     private(set) var referenceCoordinates: (Int, Int) = (0, 0)
     private(set) var tileSize: CGFloat = 100.0
-    private(set) var centreCoordinates: (Int, Int) = (0, 0)
+    private(set) var centreCoordinates: (Int, Int) = (Int.max, Int.max)
 
     private(set) var observingScrollview: Bool = false
+
+    private var allocatedTiles: [GridTile] = []
 
     override func awakeFromNib() {
         super.awakeFromNib()
@@ -59,7 +61,9 @@ class GridView: UIView {
     }
 
     private func allocateInitialTiles() {
-        populateGridInBounds(lowerX: -2, upperX: 2, lowerY: -2, upperY: 2)
+        if let scrollview = hostScrollView {
+            adjustGrid(for: scrollview)
+        }
     }
 
     private func populateGridInBounds(lowerX: Int, upperX: Int, lowerY: Int, upperY: Int) {
@@ -75,8 +79,17 @@ class GridView: UIView {
         }
     }
 
+    private func tileExists(at tileCoordinates: (Int, Int)) -> Bool {
+        for tile in allocatedTiles where tile.coordinates == tileCoordinates {
+            return true
+        }
+        return false
+    }
+
     private func allocateTile(at tileCoordinates: (Int, Int)) {
+        guard tileExists(at: tileCoordinates) == false else { return }
         let tile = GridTile(frame: frameForTile(at: tileCoordinates), coordinates: tileCoordinates)
+        allocatedTiles.append(tile)
         self.addSubview(tile)
         print("We allocated a new tile at \(tileCoordinates)")
     }
@@ -107,7 +120,12 @@ class GridView: UIView {
         guard centre != centreCoordinates else { return }
         self.centreCoordinates = centre
         print("centre is now at coordinates: \(centre)")
-        // TODO: allocate/deallocate grid tiles!
+        let centreX = centre.0
+        let centreY = centre.1
+        let xTilesRequired = Int(UIScreen.main.bounds.size.width / tileSize)
+        let yTilesRequired = Int(UIScreen.main.bounds.size.height / tileSize)
+        populateGridInBounds(lowerX: centreX - xTilesRequired, upperX: centreX + xTilesRequired,
+                             lowerY: centreY - yTilesRequired, upperY: centreY + yTilesRequired)
     }
 
     private func computedCentreCoordinates(_ scrollview: UIScrollView) -> (Int, Int) {
