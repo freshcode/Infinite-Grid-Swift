@@ -122,6 +122,7 @@ class GridView: UIView {
             let scrollview = hostScrollView
             else { return }
         scrollview.addObserver(self, forKeyPath: "contentOffset", options: .new, context: nil)
+        scrollview.delegate = self
         observingScrollview = true
     }
 
@@ -160,4 +161,36 @@ class GridView: UIView {
         return (xIntOffset + referenceCoordinates.0, yIntOffset + referenceCoordinates.1)
     }
 
+}
+
+extension GridView: UIScrollViewDelegate {
+    func scrollViewDidEndDragging(_ scrollView: UIScrollView, willDecelerate decelerate: Bool) {
+        guard decelerate == false else { return }
+        self.readjustOffsets()
+    }
+
+    func scrollViewDidEndDecelerating(_ scrollView: UIScrollView) {
+        self.readjustOffsets()
+    }
+
+    private func readjustOffsets() {
+        guard
+            centreCoordinates != referenceCoordinates,
+            let scrollview = hostScrollView,
+            tileSize > 0
+            else { return }
+        let xOffset = CGFloat(centreCoordinates.0 - referenceCoordinates.0) * tileSize
+        let yOffset = CGFloat(centreCoordinates.1 - referenceCoordinates.1) * tileSize
+        referenceCoordinates = centreCoordinates
+        for tile in allocatedTiles {
+            var frame = tile.frame
+            frame.origin.x -= xOffset
+            frame.origin.y -= yOffset
+            tile.frame = frame
+        }
+        var newContentOffset = scrollview.contentOffset
+        newContentOffset.x -= xOffset
+        newContentOffset.y -= yOffset
+        scrollview.setContentOffset(newContentOffset, animated: false)
+    }
 }
