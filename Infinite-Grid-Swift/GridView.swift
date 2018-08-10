@@ -25,11 +25,20 @@ class GridView: UIView {
     private(set) var tileSize: CGFloat = 100.0
     private(set) var centreCoordinates: (Int, Int) = (0, 0)
 
+    private(set) var observingScrollview: Bool = false
+
     override func awakeFromNib() {
         super.awakeFromNib()
         defineScrollableArea()
         centreOurReferenceView()
         allocateInitialTiles()
+        observeScrollview()
+    }
+
+    deinit {
+        if observingScrollview {
+            hostScrollView?.removeObserver(self, forKeyPath: "contentOffset")
+        }
     }
 
     private func defineScrollableArea() {
@@ -79,4 +88,37 @@ class GridView: UIView {
         let yOffset = self.bounds.size.height * 0.5 + (tileSize * (CGFloat(yIntOffset) - 0.5))
         return CGRect(x: xOffset, y: yOffset, width: tileSize, height: tileSize)
     }
+
+    private func observeScrollview() {
+        guard observingScrollview == false,
+            let scrollview = hostScrollView
+            else { return }
+        scrollview.addObserver(self, forKeyPath: "contentOffset", options: .new, context: nil)
+        observingScrollview = true
+    }
+
+    override func observeValue(forKeyPath keyPath: String?, of object: Any?, change: [NSKeyValueChangeKey : Any]?, context: UnsafeMutableRawPointer?) {
+        guard let scrollview = object as? UIScrollView else { return }
+        adjustGrid(for: scrollview)
+    }
+
+    private func adjustGrid(for scrollview: UIScrollView) {
+        let centre = computedCentreCoordinates(scrollview)
+        guard centre != centreCoordinates else { return }
+        self.centreCoordinates = centre
+        print("centre is now at coordinates: \(centre)")
+        // TODO: allocate/deallocate grid tiles!
+    }
+
+    private func computedCentreCoordinates(_ scrollview: UIScrollView) -> (Int, Int) {
+        guard tileSize > 0 else { return centreCoordinates }
+        let contentOffset = scrollview.contentOffset
+        let scrollviewSize = scrollview.frame.size
+        let xOffset = -(self.center.x - (contentOffset.x + scrollviewSize.width * 0.5))
+        let yOffset = -(self.center.y - (contentOffset.y + scrollviewSize.height * 0.5))
+        let xIntOffset = Int((xOffset / tileSize).rounded())
+        let yIntOffset = Int((yOffset / tileSize).rounded())
+        return (xIntOffset + referenceCoordinates.0, yIntOffset + referenceCoordinates.1)
+    }
+
 }
